@@ -64,7 +64,7 @@ def submit_item(request):
         item_id = item.get('id', None)
         quantity = item.get('quantity', None)
 
-        item_details = find_items(70)
+        item_details = find_items(item_id)
 
         if(item_details == None):
             return JsonResponse({"error": "Invalid JSON data."}, status=400)
