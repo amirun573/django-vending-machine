@@ -33,8 +33,7 @@
                 <!-- Your vending machine options -->
                 <h1>Vending Machine</h1>
                 <h2>Your coins: {{ user_profile.coins }}</h2>
-                <form method="post">
-                    {% csrf_token %}
+     
                     <div class="row">
                         {% for item in items %}
                         <div class="col-4">
@@ -54,7 +53,6 @@
                     <br>
                     <br>
 
-                </form>
             </div>
 
             <div class="col-4">
