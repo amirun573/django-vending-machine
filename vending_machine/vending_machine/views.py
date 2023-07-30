@@ -11,4 +11,4 @@ def hello_geeks (request) :
 
     # This will return Hello Geeks
     # string as HttpResponse
-    return HttpResponse("Hello Geeks")
+    return HttpResponse("<h1>Hello Geeks</h1>")

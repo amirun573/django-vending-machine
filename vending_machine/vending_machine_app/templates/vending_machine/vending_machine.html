@@ -1,0 +1,276 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vending Machine</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'public/css/counter.css'  %}">
+
+</head>
+<script>
+    // Get the user's coins from the Python variable
+     
+    // Create a list of items and their prices in JavaScript
+    var itemsList = [];
+    {% for item in items %}
+        itemsList.push({
+            id: "{{ item.id }}",
+            name: "{{item.name}}",
+            price: {{ item.price }},
+            image_path: "{% static item.image_path %}"
+        });
+    {% endfor %}
+
+    let totalPrice = 0;
+
+</script>
+<body>
+    <div class="container">
+        <div class="row mt-5">
+            <div class="col-8">
+                <!-- Your vending machine options -->
+                <h1>Vending Machine</h1>
+                <h2>Your coins: {{ user_profile.coins }}</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        {% for item in items %}
+                        <div class="col-4">
+                            <!-- Your vending machine image -->
+                            <p>{{ item.name }} RM({{ item.price }})</p>
+                            <img src="{% static item.image_path  %}" alt="Vending Machine" class="img-fluid" width="200" height="200">
+                            <div class="qty mt-5">
+                                <span class="minus bg-dark">-</span>
+                                <input type="number" class="count" name="qty" value="0" id="count_{{item.id}}">
+                                <span class="plus bg-dark">+</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <br>
+                    <br>
+                    <br>
+
+                </form>
+            </div>
+
+            <div class="col-4">
+                <!-- Purchase details -->
+                <h2>Purchase Details</h2>
+                <table class="table" id="listItemsTable">
+                    
+                    </thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Product Name</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Price (RM)</th>
+                      </tr>
+                    <thead>
+                 
+                    <tbody id="listItemsTableBody">
+
+                    </tbody>
+                </table>
+                
+                <div>
+                    <h3>Total Price (RM): <span id="totalPrice">0</span></h3>
+                </div>  
+                
+                <br>
+                <p>
+                    Insert Amount Need To Be Pay (RM)
+                </p>
+                <input type="text"  name="inputAmount" value="0" id="inputAmount" onkeyup="checkBalance()">
+                
+                <br>
+                <br>
+                
+                <div style="text-align: right;">
+                    <button  onclick="submit()" disabled="true" id="purchase" name="purchase">Purchase</button>
+                </div>
+
+                <div>
+                    <h3>Balance (RM): <span id="balance">0</span></h3>
+                </div>  
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('.count').prop('disabled', true);
+            
+            $(document).on('click', '.plus', function(){
+                let itemID = $(this).closest('.qty').find('.count').attr('id');
+                let countField = $('#' + itemID);
+                countField.val(parseInt(countField.val()) + 1);
+                checkBalance();
+                reviewItems();
+            });
+            
+            $(document).on('click', '.minus', function(){
+                let itemID = $(this).closest('.qty').find('.count').attr('id');
+                let countField = $('#' + itemID);
+                countField.val(parseInt(countField.val()) - 1);
+                if (countField.val() < 0) {
+                    countField.val(0);
+                }
+                checkBalance();
+                reviewItems();
+
+            });
+        });
+    </script>
+
+    <script>
+
+function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Extract the CSRF token from the cookie with name 'csrftoken'
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = cookie.substring(name.length + 1, cookie.length);
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+        function submit(){
+
+            const itemsPurchase = itemsList.map(item => {
+                if(parseInt(document.getElementById(`count_${item.id}`).value) >0){
+                    return {
+                        id: parseInt(item.id),
+                        quantity: parseInt(document.getElementById(`count_${item.id}`).value)
+                    }
+                } else{
+                    return '';
+                }
+                
+                    
+            });
+
+            const filteredItemsPurchase = itemsPurchase.filter(item => item !== "");
+
+            const inputAmount = parseFloat(document.getElementById("inputAmount").value);
+
+            const apiUrl = 'submit';
+
+            const csrftoken = getCookie('csrftoken');
+
+            
+            // Fetch the data from the API using the GET method
+            fetch(apiUrl,{
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+                body :JSON.stringify({
+                    itemsPurchase: filteredItemsPurchase,
+                    inputAmount,
+                })
+            })
+                .then(response => {
+                    // Check if the request was successful (status code in the range of 200-299)
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    console.log(response);
+                    return response.json(); // Parse the response as JSON
+                })
+                .then(data => {
+                    // Handle the data received from the API
+                    // For example, display it on the web page
+                    alert(data.message);
+                })
+                .catch(error => {
+                    // Handle errors that occur during the fetch process
+                    console.log('Fetch error:', error);
+                    alert(error.message);
+
+                });
+
+        }
+
+        function reviewItems() {
+        let counting = 0;
+        totalPrice = 0;
+        const listItems = itemsList.map(item => {
+            let count = parseInt(document.getElementById(`count_${item.id}`).value);
+            if (count > 0) {
+                totalPrice += item.price * count;
+                counting +=1;
+                return `
+                    <tr>
+                        <td>${counting}</td>
+                        <td>${item.name}</td>
+                        <td>${count}</td>
+                        <td>${item.price * count}</td>
+                    </tr>`;
+            } else {
+                return '';
+            }
+        });
+
+        const totalPriceElement = document.getElementById("totalPrice");
+        totalPriceElement.textContent = totalPrice.toFixed(2);
+
+        const listItemsElement = document.getElementById("listItemsTableBody");
+        listItemsElement.innerHTML = listItems.join('');
+
+        if(listItems.length >0){
+            const inputUserElement = document.getElementById("inputAmount");
+            inputUserElement.create
+        }
+    }
+
+    function checkBalance(){
+        const inputAmount = document.getElementById("inputAmount").value;
+        const purchaseButton = document.getElementById("purchase");
+        const balanceButton = document.getElementById("balance");
+
+        const balance = inputAmount - totalPrice;
+
+
+        if(inputAmount && totalPrice){
+            balanceButton.innerHTML = balance >=0 ? balance : 0;
+        
+        if(balance >=0){
+            purchaseButton.disabled = false;
+
+        }else{
+            purchaseButton.disabled = true;
+
+        }
+        }
+        
+
+    }
+</script>
+
+
+
+
+
+    </script>
+    
+    
+    
+    
+    
+</body>
+</html>
